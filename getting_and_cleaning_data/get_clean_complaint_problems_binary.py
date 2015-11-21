@@ -18,7 +18,7 @@ def get_clean_problem_data():
     complaint_problems = complaint_problems[(complaint_problems.StatusID == 2)]
     complaint_problems = complaint_problems[~(complaint_problems.isnull().any(axis=1))]
 
-    ##Note there is an extra whitespace in the SpaceTypeID_ column name
+    ##Note there is an extra whitespace in the SpaceTypeID_ column name, so we rename the columns.
     complaint_problems.columns = ['ProblemID', 'ComplaintID', 'UnitTypeID', 'SpaceTypeID', 'TypeID', 'MajorCategoryID', 'MinorCategoryID', 'CodeID', 'StatusID', 'StatusDate', 'StatusDescription']
     
     ## Validate entries in the ID features
@@ -44,8 +44,20 @@ def get_clean_problem_data():
     complaint_problems['StatusDescriptionID'] = complaint_problems['StatusDescription'].map(infer_complaint_status)   
     complaint_problems = complaint_problems.drop(['StatusID','StatusDescription'],axis=1)
 
-    ## Convert the StatusDate to pd.datetime
-    complaint_problems.StatusDate = pd.to_datetime(complaint_problems.StatusDate)
+    ## Add a feature that counts number of problems in associated complaint and drop ComplaintID
+    prob_in_complaint = complaint_problems.ComplaintID.value_counts()
+    prob_in_complaint.name = 'Probs_in_complaint'
+    complaint_problems.set_index('ComplaintID', drop=False, inplace=True)
+    complaint_problems = complaint_problems.join(prob_in_complaint, how='inner')
+    complaint_problems.reset_index(inplace=True, drop=True)
+    
+    ## Drop ProblemID and StatusDate
+    complaint_problems = complaint_problems.drop(['ProblemID', "StatusDate"], axis=1)
+    
+    ## Make binary target- ViolationIssued
+    complaint_problems = complaint_problems[(complaint_problems.StatusDescriptionID != 4)]
+    complaint_problems['ViolationIssued'] = complaint_problems['StatusDescriptionID'].map(lambda x: 1 if (x == 3 or x == 8) else 0)
+    complaint_problems = complaint_problems.drop('StatusDescriptionID', axis=1)
 
     return complaint_problems
     

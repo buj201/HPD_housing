@@ -20,7 +20,7 @@ def get_clean_complaint_data():
     complaints = complaints[complaints.BoroughID.isin(range(1,6))]
 
     start = pd.datetime(2014,11,1)
-    end = pd.datetime.now()
+    end = pd.datetime(2015,10,31)
     allowed_date_range = pd.date_range(start, end, freq='D')
     complaints = complaints[(complaints['ReceivedDate'].isin(allowed_date_range))]
     complaints['BBL'] = map(make_BBL, complaints['BoroughID'], complaints['Block'], complaints['Lot'])
